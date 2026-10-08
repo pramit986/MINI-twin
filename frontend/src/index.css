@@ -1,0 +1,202 @@
+@import "tailwindcss";
+@import "@fontsource/fraunces/400.css";
+@import "@fontsource/geist-sans/400.css";
+@import "@fontsource/geist-mono/400.css";
+@import "./styles/layout.css";
+
+/* ============================================================
+   Student Twin — Hand-designed Premium Minimalist System
+   ============================================================ */
+
+@theme {
+  --color-bg: #0E0E0C;
+  --color-surface: #151512;
+  --color-line: #262622;
+  --color-text: #EDEAE3;
+  --color-text-2: #A8A59C;
+  --color-text-3: #6E6C65;
+  --color-accent: #C8FF3D;
+  --color-regret: #D4574B;
+  
+  --font-display: 'Fraunces', serif;
+  --font-body: 'Geist Sans', sans-serif;
+  --font-mono: 'Geist Mono', monospace;
+  
+  /* Reset some default shadows / glows if they exist */
+  --shadow-none: none;
+}
+
+/* Tailwind v4 preflight handles resetting, unlayered * breaks utilities */
+
+html {
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.6;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  min-height: 100vh;
+}
+
+/* Typography styles */
+.text-display {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 1.4rem + 2vw, 3.25rem);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  /* Sentence case is handled in markup */
+}
+
+.text-title {
+  font-family: var(--font-body);
+  font-size: 1.5rem;
+  line-height: 1.25;
+}
+
+.text-body {
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+.text-small {
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.text-label {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-3);
+}
+
+.text-numeral {
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  font-size: 2.5rem;
+  line-height: 1.1;
+}
+
+@media (min-width: 768px) {
+  .text-numeral {
+    font-size: 3.5rem;
+  }
+}
+
+/* Common UI patterns */
+.ruled-row {
+  border-bottom: 1px solid var(--color-line);
+}
+.ruled-row:first-child {
+  border-top: 1px solid var(--color-line);
+}
+
+.hairline-top { border-top: 1px solid var(--color-line); }
+.hairline-bottom { border-bottom: 1px solid var(--color-line); }
+.hairline-y { border-top: 1px solid var(--color-line); border-bottom: 1px solid var(--color-line); }
+
+button, .btn {
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  padding: 0 16px;
+  border: none;
+}
+
+.btn-primary {
+  background-color: var(--color-accent);
+  color: var(--color-bg);
+}
+
+.btn-primary:hover {
+  background-color: #d1ff5c; /* slight hover */
+}
+
+.btn-secondary {
+  background-color: transparent;
+  color: var(--color-text);
+  border: 1px solid var(--color-line);
+}
+
+.btn-secondary:hover {
+  background-color: var(--color-surface);
+}
+
+.btn-text {
+  background-color: transparent;
+  color: var(--color-text);
+  height: auto;
+  padding: 0;
+}
+.btn-text:hover {
+  color: var(--color-accent);
+}
+
+input {
+  border-radius: 2px;
+  border: 1px solid var(--color-line);
+  background: transparent;
+  color: var(--color-text);
+  padding: 0 16px;
+}
+input:focus {
+  outline: 1px solid var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-line);
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-3);
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Custom Sliders for Future Self */
+input[type=range].slider-thumb-square::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 16px;
+  width: 16px;
+  background: var(--color-accent);
+  border-radius: 0;
+  cursor: pointer;
+}
+input[type=range].slider-thumb-square::-moz-range-thumb {
+  height: 16px;
+  width: 16px;
+  background: var(--color-accent);
+  border-radius: 0;
+  cursor: pointer;
+  border: none;
+}
+

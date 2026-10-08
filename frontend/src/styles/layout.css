@@ -1,0 +1,30 @@
+:root {
+  --sidebar-w: 248px;
+  --pad-x: 40px;   /* 24px under 768px */
+  --pad-top: 40px;
+  --gap-s: 8px; --gap-m: 16px; --gap-l: 24px; --gap-xl: 32px; --gap-2xl: 56px;
+}
+@media (min-width: 768px) {
+  .app { display: grid; grid-template-columns: var(--sidebar-w) 1fr; min-height: 100dvh; }
+}
+.sidebar    { padding: 24px 16px; border-right: 1px solid var(--line); }
+.sidebar .logo { padding: 0 12px 24px; }
+.nav-group-title {                 /* HOME / LIFE / TWIN / SYSTEM */
+  margin: 32px 0 8px; padding: 16px 12px 0;
+  border-top: 1px solid var(--line);
+  font: 600 13px/1.2 var(--font-body);
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: #CFCBC1;
+}
+.nav-group-title:first-of-type { margin-top: 24px; border-top: 0; padding-top: 0; }
+.nav-item   { display: flex; align-items: center; gap: 12px; height: 38px;
+              padding: 0 12px; margin: 2px 0; border-radius: 2px; }
+.main       { padding: var(--pad-top) var(--pad-x) 80px; min-width: 0; }
+.main-inner { max-width: 1120px; margin-inline: auto; }
+.header-block { display: flex; flex-direction: column; gap: var(--gap-m); }
+.stat-row   { display: flex; flex-wrap: wrap; column-gap: 56px; row-gap: 24px;
+              padding: 24px 0; margin-top: 8px; border-block: 1px solid var(--line); }
+.stat       { display: flex; flex-direction: column; gap: 8px; }
+.actions    { display: flex; gap: 16px; margin-top: 8px; }
+.section    { padding-top: var(--gap-2xl); }
+@media (max-width: 767px) { :root { --pad-x: 24px; } }
