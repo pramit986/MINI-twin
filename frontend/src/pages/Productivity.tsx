@@ -1,11 +1,34 @@
 import { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { api } from '../services/api';
 import type { ProductivityData, Task } from '../types';
+
+const taskSchema = z.object({
+  title: z.string().min(1, 'Title is required').max(100),
+  category: z.enum(['academic', 'fitness', 'productivity', 'nutrition', 'finance', 'career', 'personal']),
+  priority: z.enum(['high', 'medium', 'low']),
+  estimatedDuration: z.number().min(5).max(480),
+  deadline: z.string(),
+});
+type TaskFormData = z.infer<typeof taskSchema>;
 
 export default function Productivity() {
   const [data, setData] = useState<ProductivityData | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAddTask, setShowAddTask] = useState(false);
+
+  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<TaskFormData>({
+    resolver: zodResolver(taskSchema),
+    defaultValues: {
+      category: 'academic',
+      priority: 'medium',
+      estimatedDuration: 60,
+      deadline: new Date().toISOString().slice(0, 16),
+    }
+  });
 
   useEffect(() => {
     fetchData();
@@ -42,6 +65,33 @@ export default function Productivity() {
     }
   };
 
+  const onSubmitTask = async (formData: TaskFormData) => {
+    try {
+      await api.createTask({
+        title: formData.title,
+        category: formData.category,
+        priority: formData.priority,
+        estimatedDuration: formData.estimatedDuration,
+        deadline: new Date(formData.deadline).toISOString(),
+      });
+      setShowAddTask(false);
+      reset();
+      fetchData(); // Refresh list
+    } catch (err) {
+      console.error("Failed to create task", err);
+    }
+  };
+
+  const handleCompleteTask = async (id: string) => {
+    await api.completeTask(id);
+    fetchData();
+  };
+
+  const handleDelayTask = async (id: string) => {
+    await api.postponeTask(id);
+    fetchData();
+  };
+
   if (loading || !data) {
     return <div className="animate-pulse w-full h-[200px] bg-[var(--color-surface)] mt-[56px]" />;
   }
@@ -49,11 +99,11 @@ export default function Productivity() {
   const pendingTasks = tasks.filter(t => t.status === 'pending' || t.status === 'in-progress');
 
   return (
-    <div className="max-w-[880px] mx-auto w-full pt-[56px] pb-[120px]">
+    <div className="max-w-[880px] mx-auto w-full pt-[56px] pb-[120px] relative">
       {/* Header */}
       <div className="flex items-end justify-between hairline-bottom pb-[8px] mb-[40px]">
         <div className="text-label">Productivity Twin</div>
-        <button className="text-[var(--color-accent)] hover:underline underline-offset-4 text-[13px] font-mono">
+        <button onClick={() => setShowAddTask(true)} className="text-[var(--color-accent)] hover:underline underline-offset-4 text-[13px] font-mono">
           + Add Task
         </button>
       </div>
@@ -94,7 +144,10 @@ export default function Productivity() {
           <div className="flex flex-col">
             {pendingTasks.map((task) => (
               <div key={task.id} className="py-[16px] ruled-row border-t-0 flex items-start gap-[12px] group">
-                <button className="mt-[2px] w-[14px] h-[14px] border border-[var(--color-line)] rounded-[2px] flex-shrink-0 hover:border-[var(--color-text)] transition-colors" />
+                <button 
+                  onClick={() => handleCompleteTask(task.id)}
+                  className="mt-[2px] w-[14px] h-[14px] border border-[var(--color-line)] rounded-[2px] flex-shrink-0 hover:border-[var(--color-text)] hover:bg-[var(--color-text)] transition-colors" 
+                />
                 <div className="flex-1 flex flex-col gap-[4px]">
                   <span className="text-[13px] text-[var(--color-text)]">{task.title}</span>
                   <div className="flex items-center gap-[12px] font-mono text-[11px]">
@@ -112,7 +165,7 @@ export default function Productivity() {
                   </div>
                 </div>
                 <div className="flex gap-[8px] opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button className="text-[11px] font-mono text-[var(--color-text-2)] hover:text-[var(--color-text)]">[DELAY]</button>
+                  <button onClick={() => handleDelayTask(task.id)} className="text-[11px] font-mono text-[var(--color-text-2)] hover:text-[var(--color-text)]">[DELAY]</button>
                   <button className="text-[11px] font-mono text-[var(--color-accent)] hover:underline underline-offset-2">[START]</button>
                 </div>
               </div>
@@ -146,6 +199,61 @@ export default function Productivity() {
           </div>
         </div>
       </div>
+
+      {/* Add Task Modal */}
+      {showAddTask && (
+        <div className="fixed inset-0 bg-[#000000CC] z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-[400px] border border-[var(--color-line)] bg-[var(--color-bg)] p-[32px] relative">
+            <button onClick={() => setShowAddTask(false)} className="absolute top-[16px] right-[16px] text-[var(--color-text-3)] hover:text-white">
+              ✕
+            </button>
+            <h3 className="text-title mb-[24px]">Add Task</h3>
+            
+            <form onSubmit={handleSubmit(onSubmitTask)} className="flex flex-col gap-[16px]">
+              <div className="flex flex-col gap-[8px]">
+                <label className="text-label">Title</label>
+                <input {...register('title')} className="h-[48px]" autoFocus />
+                {errors.title && <span className="text-[var(--color-regret)] text-[11px] font-mono">{errors.title.message}</span>}
+              </div>
+
+              <div className="flex flex-col gap-[8px]">
+                <label className="text-label">Category</label>
+                <select {...register('category')} className="h-[48px] bg-transparent border border-[var(--color-line)] px-4">
+                  <option value="academic">Academic</option>
+                  <option value="fitness">Fitness</option>
+                  <option value="productivity">Productivity</option>
+                  <option value="career">Career</option>
+                  <option value="personal">Personal</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-[16px]">
+                <div className="flex flex-col gap-[8px]">
+                  <label className="text-label">Priority</label>
+                  <select {...register('priority')} className="h-[48px] bg-transparent border border-[var(--color-line)] px-4">
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-[8px]">
+                  <label className="text-label">Est. Mins</label>
+                  <input type="number" {...register('estimatedDuration', { valueAsNumber: true })} className="h-[48px]" />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-[8px]">
+                <label className="text-label">Deadline</label>
+                <input type="datetime-local" {...register('deadline')} className="h-[48px]" />
+              </div>
+
+              <button type="submit" disabled={isSubmitting} className="btn-primary w-full mt-[16px]">
+                {isSubmitting ? 'Adding...' : 'Create Task'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

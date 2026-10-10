@@ -1,15 +1,33 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { Calculator } from 'lucide-react';
 import { api } from '../services/api';
 import type { AcademicData, RiskPrediction, AttendanceIntelligence } from '../types';
+
+const subjectSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(100),
+  code: z.string().min(1, 'Code is required').max(20),
+  credits: z.number().min(1).max(10),
+  difficulty: z.number().min(1).max(5),
+  importance: z.number().min(1).max(5),
+});
+type SubjectFormData = z.infer<typeof subjectSchema>;
 
 export default function Academic() {
   const [data, setData] = useState<AcademicData | null>(null);
   const [attendance, setAttendance] = useState<AttendanceIntelligence[]>([]);
   const [risk, setRisk] = useState<RiskPrediction | null>(null);
   const [loading, setLoading] = useState(true);
+  
   const [showCalculator, setShowCalculator] = useState(false);
+  const [showAddSubject, setShowAddSubject] = useState(false);
+
+  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<SubjectFormData>({
+    resolver: zodResolver(subjectSchema),
+    defaultValues: { credits: 3, difficulty: 3, importance: 3 }
+  });
 
   useEffect(() => {
     fetchData();
@@ -32,14 +50,35 @@ export default function Academic() {
     }
   };
 
+  const onSubmitSubject = async (formData: SubjectFormData) => {
+    try {
+      await api.createSubject(formData);
+      setShowAddSubject(false);
+      reset();
+      fetchData();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleMarkAttendance = async (subjectId: string, status: 'present' | 'absent') => {
+    await api.markAttendance(subjectId, status);
+    fetchData();
+  };
+
   if (loading || !data) {
     return <div className="animate-pulse w-full h-[200px] bg-[var(--color-surface)] mt-[56px]" />;
   }
 
   return (
-    <div className="max-w-[880px] mx-auto w-full pt-[56px] pb-[120px]">
+    <div className="max-w-[880px] mx-auto w-full pt-[56px] pb-[120px] relative">
       {/* Header */}
-      <div className="text-label hairline-bottom pb-[8px] mb-[40px]">Academic Twin</div>
+      <div className="flex items-end justify-between hairline-bottom pb-[8px] mb-[40px]">
+        <div className="text-label">Academic Twin</div>
+        <button onClick={() => setShowAddSubject(true)} className="text-[var(--color-accent)] hover:underline underline-offset-4 text-[13px] font-mono">
+          + Add Subject
+        </button>
+      </div>
       <h1 className="text-display mb-[56px]">Semester {data.semester} Overview</h1>
 
       {/* Top Stats */}
@@ -132,19 +171,25 @@ export default function Academic() {
           {data.subjects.map(sub => {
             const att = attendance.find(a => a.code === sub.code);
             return (
-              <div key={sub.id} className="grid grid-cols-12 items-center py-[16px] ruled-row border-t-0">
+              <div key={sub.id} className="grid grid-cols-12 items-center py-[16px] ruled-row border-t-0 group">
                 <div className="col-span-3 pr-[16px]">
                   <div className="font-mono text-[var(--color-text)]">{sub.code}</div>
                   <div className="text-[13px] text-[var(--color-text-2)] truncate max-w-full" title={sub.name}>{sub.name}</div>
                 </div>
                 <div className="col-span-3 pr-[16px]">
                   <div className={`font-mono ${sub.attendancePercentage < 75 ? 'text-[var(--color-regret)]' : ''}`}>
-                    {sub.attendancePercentage}%
+                    {Math.round(sub.attendancePercentage)}%
                   </div>
                   <div className="text-[13px] text-[var(--color-text-2)]">{sub.attendedClasses}/{sub.totalClasses} classes</div>
+                  
+                  {/* Hover Actions */}
+                  <div className="hidden group-hover:flex gap-[8px] mt-2">
+                     <button onClick={() => handleMarkAttendance(sub.id, 'present')} className="text-[10px] font-mono border border-[var(--color-line)] px-2 py-1 hover:text-[var(--color-bg)] hover:bg-[var(--color-text)]">+ Present</button>
+                     <button onClick={() => handleMarkAttendance(sub.id, 'absent')} className="text-[10px] font-mono border border-[var(--color-line)] px-2 py-1 hover:text-[var(--color-regret)] hover:border-[var(--color-regret)]">+ Absent</button>
+                  </div>
                 </div>
                 <div className="col-span-4 pr-[16px] text-[13px] text-[var(--color-text-2)]">
-                  {att && (
+                  {att ? (
                     <>
                       {att.canMiss > 0 ? (
                         <span>Can safely miss {att.canMiss} classes</span>
@@ -154,6 +199,8 @@ export default function Academic() {
                         <span>Exactly at 75% limit</span>
                       )}
                     </>
+                  ) : (
+                    <span>No attendance recorded yet.</span>
                   )}
                 </div>
                 <div className="col-span-2 text-right uppercase text-[13px] font-mono">
@@ -164,13 +211,19 @@ export default function Academic() {
               </div>
             );
           })}
+          
+          {data.subjects.length === 0 && (
+             <div className="py-[16px] text-[13px] font-mono text-[var(--color-text-3)] text-center">
+               No subjects tracked. Click + Add Subject.
+             </div>
+          )}
         </div>
       </div>
       
       {/* Basic CGPA What-If Modal Placeholder */}
       {showCalculator && (
-        <div className="fixed inset-0 bg-[var(--color-bg)]/90 z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-[400px] border border-[var(--color-line)] bg-[var(--color-surface)] p-[32px] relative">
+        <div className="fixed inset-0 bg-[#000000CC] z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-[400px] border border-[var(--color-line)] bg-[var(--color-bg)] p-[32px] relative">
             <button onClick={() => setShowCalculator(false)} className="absolute top-[16px] right-[16px] text-[var(--color-text-3)] hover:text-white">
               ✕
             </button>
@@ -203,6 +256,51 @@ export default function Academic() {
             >
               Calculate Projection
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Add Subject Modal */}
+      {showAddSubject && (
+        <div className="fixed inset-0 bg-[#000000CC] z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-[400px] border border-[var(--color-line)] bg-[var(--color-bg)] p-[32px] relative">
+            <button onClick={() => setShowAddSubject(false)} className="absolute top-[16px] right-[16px] text-[var(--color-text-3)] hover:text-white">
+              ✕
+            </button>
+            <h3 className="text-title mb-[24px]">Add Subject</h3>
+            
+            <form onSubmit={handleSubmit(onSubmitSubject)} className="flex flex-col gap-[16px]">
+              <div className="flex flex-col gap-[8px]">
+                <label className="text-label">Subject Code</label>
+                <input {...register('code')} className="h-[48px]" placeholder="e.g. CS101" autoFocus />
+                {errors.code && <span className="text-[var(--color-regret)] text-[11px] font-mono">{errors.code.message}</span>}
+              </div>
+
+              <div className="flex flex-col gap-[8px]">
+                <label className="text-label">Subject Name</label>
+                <input {...register('name')} className="h-[48px]" placeholder="e.g. Data Structures" />
+                {errors.name && <span className="text-[var(--color-regret)] text-[11px] font-mono">{errors.name.message}</span>}
+              </div>
+
+              <div className="grid grid-cols-3 gap-[16px]">
+                <div className="flex flex-col gap-[8px]">
+                  <label className="text-label">Credits</label>
+                  <input type="number" {...register('credits', { valueAsNumber: true })} className="h-[48px]" />
+                </div>
+                <div className="flex flex-col gap-[8px]">
+                  <label className="text-label">Difficulty</label>
+                  <input type="number" {...register('difficulty', { valueAsNumber: true })} min={1} max={5} className="h-[48px]" placeholder="1-5" />
+                </div>
+                <div className="flex flex-col gap-[8px]">
+                  <label className="text-label">Importance</label>
+                  <input type="number" {...register('importance', { valueAsNumber: true })} min={1} max={5} className="h-[48px]" placeholder="1-5" />
+                </div>
+              </div>
+
+              <button type="submit" disabled={isSubmitting} className="btn-primary w-full mt-[16px]">
+                {isSubmitting ? 'Adding...' : 'Add Subject'}
+              </button>
+            </form>
           </div>
         </div>
       )}

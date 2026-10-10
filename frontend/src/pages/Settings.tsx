@@ -82,11 +82,45 @@ export default function Settings() {
             <p className="text-[13px] text-[var(--color-text-2)] font-mono leading-[1.6]">
               Student data belongs to the student. AI recommendations are advisory. Sensitive information should be handled carefully.
             </p>
+            <div className="flex flex-col md:flex-row gap-[16px]">
+              <button 
+                onClick={async () => {
+                  try {
+                    const data = await api.exportData();
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'student_twin_export.json';
+                    a.click();
+                  } catch (e) {
+                    alert('Export failed');
+                  }
+                }}
+                className="btn-secondary h-[40px] px-[24px] w-fit"
+              >
+                Export My Data (JSON)
+              </button>
+              
+              <button 
+                onClick={async () => {
+                  if (confirm('WARNING: This will permanently delete your account and all data. Are you sure?')) {
+                    if (confirm('Type YES to confirm deletion. (Wait, just confirming again)')) {
+                      await api.deleteAccount();
+                      window.location.href = '/';
+                    }
+                  }
+                }}
+                className="btn-text h-[40px] px-[24px] w-fit border border-[var(--color-regret)] text-[var(--color-regret)] hover:bg-[var(--color-regret)] hover:text-white"
+              >
+                Delete Account
+              </button>
+            </div>
             <button 
               onClick={handleReset}
-              className="text-[13px] font-mono text-[var(--color-regret)] hover:underline underline-offset-4 self-start"
+              className="text-[13px] font-mono text-[var(--color-regret)] hover:underline underline-offset-4 self-start mt-4"
             >
-              [RESET_PROTOTYPE_DATA]
+              [LOGOUT / RESET LOCAL STATE]
             </button>
           </div>
         </div>
